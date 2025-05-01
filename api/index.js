@@ -20,7 +20,7 @@ let code = generateCode();
 // для cors ========
 app.use(
   cors({
-    origin: "https://iit-eight.vercel.app/", // local "http://localhost:5173", // Разрешить только этот домен
+    origin: "https://iit-eight.vercel.app", // local "http://localhost:5173", // Разрешить только этот домен
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })
