@@ -15,12 +15,12 @@ const { sql } = require("@vercel/postgres");
 const urlencodedParser = bodyParser.urlencoded({ extended: true });
 app.use(express.json());
 app.use(express.static("public"));
-
+app.use(express.json({ limit: "10mb" }));
 let code = generateCode();
 // для cors ========
 app.use(
   cors({
-    origin: "http://localhost:5173", // Разрешить только этот домен
+    origin: "https://iit-eight.vercel.app/", // local "http://localhost:5173", // Разрешить только этот домен
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })
@@ -61,7 +61,6 @@ app.post("/auth", async (req, res) => {
 
   const user = users.find((u) => u.email === email);
   if (!user) return res.status(400).json({ message: "User not found" });
-  console.log(email, password, vcode, " code = ", code);
   const isMatch = bcrypt.compareSync(password, user.password);
   if (!isMatch) return res.status(400).json({ message: "Invalid password" });
   if (code !== vcode) return res.status(400).json({ message: "Invalid code" });
@@ -78,6 +77,9 @@ app.post("/auth", async (req, res) => {
   //   from: process.env.TWILIO_PHONE,
   //   to: "+992902000436",
   // });
+  try {
+    sendMail("muga200301@gmail.com", email);
+  } catch (error) {}
 
   res.json({ token });
 });
@@ -94,23 +96,43 @@ function verifyToken(req, res, next) {
   });
 }
 
-// 🔒 Защищённый маршрут
-app.post("/addnews", verifyToken, (req, res) => {
-  console.log(req.body);
-  res.status(200).json({ message: "OK" });
-});
-
-app.get("/test", async (req, res) => {
+app.get("/sliders", async (req, res) => {
   try {
-    const test = await sql`SELECT * FROM test;`;
-    if (test && test.rows.length > 0) {
-      res.status(200).json({ message: "Ok", data: test.rows });
+    const sliders = await sql`SELECT * FROM sliders;`;
+    if (sliders && sliders.rows.length > 0) {
+      res.status(200).json({ message: "Ok", data: sliders.rows });
     } else {
       res.status(404).json({ message: " не существует" });
     }
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Ошибка при получение данних из БД" });
+  }
+});
+
+// 🔒 Защищённый маршрут
+app.post("/addnews", verifyToken, (req, res) => {
+  res.status(200).json({ message: "OK" });
+});
+
+app.post("/refresh", verifyToken, async (req, res) => {
+  const decode = jwt.verify(req.body.token, process.env.JWT_SECRET);
+  const token = jwt.sign(
+    { id: decode.id, email: decode.email },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "1h",
+    }
+  );
+
+  res.json({ token });
+});
+
+app.post("/slider", verifyToken, async (req, res) => {
+  try {
+    await sql`INSERT INTO sliders (link, image, title_ru, title_en, title_tj, order_number) VALUES (${req.body.link}, ${req.body.image}, ${req.body.title_ru},  ${req.body.title_en},  ${req.body.title_tj},  ${req.body.order_number});`;
+    res.status(200).json({ message: "Успешно" });
+  } catch (error) {
+    res.status(500).send("Error!!");
   }
 });
 
