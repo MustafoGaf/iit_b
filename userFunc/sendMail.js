@@ -9,6 +9,7 @@ const tranporter = nodemailer.createTransport({
 });
 function sendMail(to, code) {
   console.log("email to => ", to, " code =>", code);
+
   const mailOption = {
     from: "muga200301@gmail.com",
     to: to,
