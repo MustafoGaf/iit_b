@@ -20,7 +20,7 @@ let code = generateCode();
 // для cors ========
 app.use(
   cors({
-    origin: "https://iit-eight.vercel.app/", // local "http://localhost:5173", // Разрешить только этот домен
+    origin: "https://iit-eight.vercel.app", // local "http://localhost:5173", // Разрешить только этот домен
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })
@@ -130,6 +130,16 @@ app.post("/refresh", verifyToken, async (req, res) => {
 app.post("/slider", verifyToken, async (req, res) => {
   try {
     await sql`INSERT INTO sliders (link, image, title_ru, title_en, title_tj, order_number) VALUES (${req.body.link}, ${req.body.image}, ${req.body.title_ru},  ${req.body.title_en},  ${req.body.title_tj},  ${req.body.order_number});`;
+    res.status(200).json({ message: "Успешно" });
+  } catch (error) {
+    res.status(500).send("Error!!");
+  }
+});
+
+app.delete("/slider/:id", verifyToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    await sql`DELETE FROM sliders WHERE id=${id}`;
     res.status(200).json({ message: "Успешно" });
   } catch (error) {
     res.status(500).send("Error!!");
