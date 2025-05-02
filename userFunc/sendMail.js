@@ -8,9 +8,10 @@ const tranporter = nodemailer.createTransport({
   },
 });
 function sendMail(to, code) {
+  console.log("gmail ",to, code);
   const mailOption = {
     from: "muga200301@gmail.com",
-    to: to,
+    to: "gam200301@gmail.com",
     subject: "Код подтверждения",
     html: `
     <body style="font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 0;">
