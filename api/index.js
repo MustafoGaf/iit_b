@@ -13,14 +13,13 @@ const sendMail = require("../userFunc/sendMail");
 const { sql } = require("@vercel/postgres");
 // Create application/x-www-form-urlencoded parser
 const urlencodedParser = bodyParser.urlencoded({ extended: true });
-app.use(express.json());
 app.use(express.static("public"));
 app.use(express.json({ limit: "10mb" }));
 let code = generateCode();
 // для cors ========
 app.use(
   cors({
-    origin: "https://iit-eight.vercel.app", // local "http://localhost:5173", // Разрешить только этот домен
+    origin: "http://localhost:5173", //prom -"https://iit-eight.vercel.app", local , // Разрешить только этот домен
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })
@@ -128,6 +127,8 @@ app.post("/refresh", verifyToken, async (req, res) => {
 });
 
 app.post("/slider", verifyToken, async (req, res) => {
+  console.log(">>>1");
+
   try {
     await sql`INSERT INTO sliders (link, image, title_ru, title_en, title_tj, order_number) VALUES (${req.body.link}, ${req.body.image}, ${req.body.title_ru},  ${req.body.title_en},  ${req.body.title_tj},  ${req.body.order_number});`;
     res.status(200).json({ message: "Успешно" });
