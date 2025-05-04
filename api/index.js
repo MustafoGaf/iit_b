@@ -19,7 +19,7 @@ let code = generateCode();
 // для cors ========
 app.use(
   cors({
-    origin: "https://iit-eight.vercel.app",// Разрешить только этот домен
+    origin: "https://iit-eight.vercel.app", // Разрешить только этот домен
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })
@@ -107,6 +107,18 @@ app.get("/sliders", async (req, res) => {
     res.status(500).json({ message: "Ошибка при получение данних из БД" });
   }
 });
+app.get("/news", async (req, res) => {
+  try {
+    const news = await sql`SELECT * FROM news order by id desc;`;
+    if (news && news.rows.length > 0) {
+      res.status(200).json({ message: "Ok", data: news.rows });
+    } else {
+      res.status(404).json({ message: " не существует" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Ошибка при получение данних из БД" });
+  }
+});
 
 // 🔒 Защищённый маршрут
 app.post("/addnews", verifyToken, (req, res) => {
@@ -141,6 +153,67 @@ app.delete("/slider/:id", verifyToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
     await sql`DELETE FROM sliders WHERE id=${id}`;
+    res.status(200).json({ message: "Успешно" });
+  } catch (error) {
+    res.status(500).send("Error!!");
+  }
+});
+app.put("/slider/:id", verifyToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    await sql`UPDATE sliders set link = ${req.body.link}, image = ${req.body.image}, title_ru = ${req.body.title_ru}, title_en = ${req.body.title_en}, title_tj = ${req.body.title_tj}, order_number = ${req.body.order_number}  WHERE id=${id}`;
+    res.status(200).json({ message: "Успешно" });
+  } catch (error) {
+    res.status(500).send("Error!!");
+  }
+});
+
+// for News
+
+app.post("/news", verifyToken, async (req, res) => {
+  console.log(">>>1");
+
+  try {
+    await sql`INSERT INTO news (
+  image, 
+  title_ru,
+  title_en,
+  title_tj, 
+  desc_ru,
+  desc_en,
+  desc_tj,
+  created_at, 
+  order_number,
+  is_active) VALUES 
+  (${req.body.image}, ${req.body.title_ru}, ${req.body.title_en},  ${req.body.title_tj},  ${req.body.desc_ru},  ${req.body.desc_en},  ${req.body.desc_tj},  TO_TIMESTAMP(${req.body.created_at}, 'YYYY-MM-DD"T"HH24:MI')::TIMESTAMP,  ${req.body.order_number},  ${req.body.is_active});`;
+    res.status(200).json({ message: "Успешно" });
+  } catch (error) {
+    res.status(500).send("Error!!");
+  }
+});
+
+app.delete("/news/:id", verifyToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    await sql`DELETE FROM news WHERE id=${id}`;
+    res.status(200).json({ message: "Успешно" });
+  } catch (error) {
+    res.status(500).send("Error!!");
+  }
+});
+app.put("/news/:id", verifyToken, async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    await sql`UPDATE news set image = ${req.body.image}, 
+  title_ru = ${req.body.title_ru},
+  title_en = ${req.body.title_en},
+  title_tj = ${req.body.title_tj}, 
+  desc_ru = ${req.body.desc_ru},
+  desc_en = ${req.body.desc_en},
+  desc_tj = ${req.body.desc_tj},
+  created_at = TO_TIMESTAMP(${req.body.created_at}, 'YYYY-MM-DD"T"HH24:MI')::TIMESTAMP, 
+  order_number = ${req.body.order_number} ,
+  is_active = ${req.body.is_active}  WHERE id=${id}`;
     res.status(200).json({ message: "Успешно" });
   } catch (error) {
     res.status(500).send("Error!!");
