@@ -5,14 +5,10 @@ const app = express();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
-const path = require("path");
-const twilio = require("twilio");
-const users = require("./users");
 const { generateCode } = require("../userFunc");
 const sendMail = require("../userFunc/sendMail");
 const { sql } = require("@vercel/postgres");
 // Create application/x-www-form-urlencoded parser
-const urlencodedParser = bodyParser.urlencoded({ extended: true });
 app.use(express.static("public"));
 app.use(express.json({ limit: "10mb" }));
 let code = generateCode();
@@ -24,63 +20,74 @@ app.use(
     allowedHeaders: "Content-Type, Authorization",
   })
 );
-
 // ================= временое
 
 // =================
 app.post("/login", async function (req, res) {
   const { email, password } = req.body;
-
-  const user = users.find((u) => u.email === email);
-  if (!user)
-    return res
-      .status(400)
-      .json({ message: "Неверная электронная почта или пароль" });
-
-  const isMatch = bcrypt.compareSync(password, user.password);
-  if (!isMatch)
-    return res
-      .status(400)
-      .json({ message: "Неверная электронная почта или пароль" });
-
-  code = generateCode();
   try {
-    sendMail(user.email, code);
-    res.status(200).json({
-      message: "Код отправлен",
-      code: 1, //auth
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Ошибка отправки", error: err.message });
+    const Users = await sql`SELECT * FROM users where email = ${email};`;
+    if (Users && Users.rows.length > 0) {
+      const isMatch = bcrypt.compareSync(password, Users.rows[0].password_hash);
+      if (!isMatch)
+        return res
+          .status(400)
+          .json({ message: "Неверная электронная почта или пароль" });
+
+      code = generateCode();
+      try {
+        sendMail(Users.rows[0].email, code);
+        res.status(200).json({
+          message: "Код отправлен",
+          code: 1, //auth
+        });
+      } catch (err) {
+        res.status(500).json({
+          message: "Ошибка отправки, повторите запрос посже",
+          error: err.message,
+        });
+      }
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Неверная электронная почта или пароль" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Ошибка при получение данних из БД" });
   }
 });
 
 app.post("/auth", async (req, res) => {
   const { email, password, vcode } = req.body;
-
-  const user = users.find((u) => u.email === email);
-  if (!user) return res.status(400).json({ message: "User not found" });
-  const isMatch = bcrypt.compareSync(password, user.password);
-  if (!isMatch) return res.status(400).json({ message: "Invalid password" });
-  if (code !== vcode) return res.status(400).json({ message: "Invalid code" });
-  const token = jwt.sign(
-    { id: user.id, email: user.email },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1h",
-    }
-  );
-  //  Отправляем СМС
-  // await client.messages.create({
-  //   body: `Успешный вход на страница админстратора от эл.почта ${email}. Дата входа ${new Date()}`,
-  //   from: process.env.TWILIO_PHONE,
-  //   to: "+992902000436",
-  // });
   try {
-    sendMail("muga200301@gmail.com", email);
-  } catch (error) {}
+    const Users = await sql`SELECT * FROM users where email = ${email};`;
+    if (!Users.rows.length)
+      return res.status(400).json({ message: "User not found" });
+    const isMatch = bcrypt.compareSync(password, Users.rows[0].password_hash);
+    if (!isMatch) return res.status(400).json({ message: "Invalid password" });
+    if (code !== vcode)
+      return res.status(400).json({ message: "Invalid code" });
+    const token = jwt.sign(
+      { id: Users.rows[0].id, email: Users.rows[0].email },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+    //  Отправляем СМС
+    // await client.messages.create({
+    //   body: `Успешный вход на страница админстратора от эл.почта ${email}. Дата входа ${new Date()}`,
+    //   from: process.env.TWILIO_PHONE,
+    //   to: "+992902000436",
+    // });
+    try {
+      sendMail("muga200301@gmail.com", email);
+    } catch (error) {}
 
-  res.json({ token });
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ message: "Ошибка при получение данних из БД" });
+  }
 });
 // 🛡️ Middleware для проверки токена
 function verifyToken(req, res, next) {
