@@ -5,6 +5,7 @@ const app = express();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
+const path = require("path");
 const { generateCode } = require("../userFunc");
 const sendMail = require("../userFunc/sendMail");
 const { sql } = require("@vercel/postgres");
@@ -15,15 +16,19 @@ let code = generateCode();
 // для cors ========
 app.use(
   cors({
-    origin: "https://iit-eight.vercel.app", // Разрешить только этот домен
+    origin: "http://localhost:5173", //"https://iit-eight.vercel.app", // Разрешить только этот домен
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type, Authorization",
   })
 );
 // ================= временое
-
+app.use(express.static(path.join(__dirname, "../dist")));
+// для клиентский часть приложение
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist", "index.html"));
+});
 // =================
-app.post("/login", async function (req, res) {
+app.post("/api/login", async function (req, res) {
   const { email, password } = req.body;
   try {
     const Users = await sql`SELECT * FROM users where email = ${email};`;
@@ -57,7 +62,7 @@ app.post("/login", async function (req, res) {
   }
 });
 
-app.post("/auth", async (req, res) => {
+app.post("/api/auth", async (req, res) => {
   const { email, password, vcode } = req.body;
   try {
     const Users = await sql`SELECT * FROM users where email = ${email};`;
@@ -102,7 +107,7 @@ function verifyToken(req, res, next) {
   });
 }
 
-app.get("/sliders", async (req, res) => {
+app.get("/api/sliders", async (req, res) => {
   try {
     const sliders = await sql`SELECT * FROM sliders;`;
     if (sliders && sliders.rows.length > 0) {
@@ -114,7 +119,7 @@ app.get("/sliders", async (req, res) => {
     res.status(500).json({ message: "Ошибка при получение данних из БД" });
   }
 });
-app.get("/news", async (req, res) => {
+app.get("/api/news", async (req, res) => {
   try {
     const news = await sql`SELECT * FROM news order by id desc;`;
     if (news && news.rows.length > 0) {
@@ -127,12 +132,26 @@ app.get("/news", async (req, res) => {
   }
 });
 
+app.get("/api/news/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const news = await sql`SELECT * FROM news WHERE id = ${id};`;
+    if (news && news.rows.length > 0) {
+      res.status(200).json({ message: "Ok", data: news.rows });
+    } else {
+      res.status(404).json({ message: " не существует" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Ошибка при получение данних из БД" });
+  }
+});
+
 // 🔒 Защищённый маршрут
-app.post("/addnews", verifyToken, (req, res) => {
+app.post("/api/addnews", verifyToken, (req, res) => {
   res.status(200).json({ message: "OK" });
 });
 
-app.post("/refresh", verifyToken, async (req, res) => {
+app.post("/api/refresh", verifyToken, async (req, res) => {
   const decode = jwt.verify(req.body.token, process.env.JWT_SECRET);
   const token = jwt.sign(
     { id: decode.id, email: decode.email },
@@ -145,7 +164,7 @@ app.post("/refresh", verifyToken, async (req, res) => {
   res.json({ token });
 });
 
-app.post("/slider", verifyToken, async (req, res) => {
+app.post("/api/slider", verifyToken, async (req, res) => {
   console.log(">>>1");
 
   try {
@@ -156,7 +175,7 @@ app.post("/slider", verifyToken, async (req, res) => {
   }
 });
 
-app.delete("/slider/:id", verifyToken, async (req, res) => {
+app.delete("/api/slider/:id", verifyToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
     await sql`DELETE FROM sliders WHERE id=${id}`;
@@ -165,7 +184,7 @@ app.delete("/slider/:id", verifyToken, async (req, res) => {
     res.status(500).send("Error!!");
   }
 });
-app.put("/slider/:id", verifyToken, async (req, res) => {
+app.put("/api/slider/:id", verifyToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
     await sql`UPDATE sliders set link = ${req.body.link}, image = ${req.body.image}, title_ru = ${req.body.title_ru}, title_en = ${req.body.title_en}, title_tj = ${req.body.title_tj}, order_number = ${req.body.order_number}  WHERE id=${id}`;
@@ -177,7 +196,7 @@ app.put("/slider/:id", verifyToken, async (req, res) => {
 
 // for News
 
-app.post("/news", verifyToken, async (req, res) => {
+app.post("/api/news", verifyToken, async (req, res) => {
   console.log(">>>1");
 
   try {
@@ -199,7 +218,7 @@ app.post("/news", verifyToken, async (req, res) => {
   }
 });
 
-app.delete("/news/:id", verifyToken, async (req, res) => {
+app.delete("/api/news/:id", verifyToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
     await sql`DELETE FROM news WHERE id=${id}`;
@@ -208,7 +227,7 @@ app.delete("/news/:id", verifyToken, async (req, res) => {
     res.status(500).send("Error!!");
   }
 });
-app.put("/news/:id", verifyToken, async (req, res) => {
+app.put("/api/news/:id", verifyToken, async (req, res) => {
   const id = parseInt(req.params.id);
   try {
     await sql`UPDATE news set image = ${req.body.image}, 
@@ -227,6 +246,10 @@ app.put("/news/:id", verifyToken, async (req, res) => {
   }
 });
 
+// иначе если url не соот
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist", "index.html"));
+});
 app.listen(3001, () => console.log("Server ready on port 3001."));
 
 module.exports = app;
