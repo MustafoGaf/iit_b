@@ -1,14 +1,23 @@
-require("dotenv").config();
-const cors = require("cors");
-const express = require("express");
+import dotenv from "dotenv";
+dotenv.config();
+
+import cors from "cors";
+import express from "express";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import bodyParser from "body-parser";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import { generateCode } from "../userFunc/index.js"; // уточни путь и расширение
+import sendMail from "../userFunc/sendMail.js";
+import { sql } from "@vercel/postgres";
+
+// Чтобы получить __dirname в ESM:
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const bodyParser = require("body-parser");
-const path = require("path");
-const { generateCode } = require("../userFunc");
-const sendMail = require("../userFunc/sendMail");
-const { sql } = require("@vercel/postgres");
 // Create application/x-www-form-urlencoded parser
 app.use(express.static("public"));
 app.use(express.json({ limit: "10mb" }));
@@ -252,4 +261,4 @@ app.get("*", (req, res) => {
 });
 app.listen(3001, () => console.log("Server ready on port 3001."));
 
-module.exports = app;
+export default app;

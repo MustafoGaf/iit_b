@@ -1,5 +1,6 @@
-const nodemailer = require("nodemailer");
-require("dotenv").config();
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 const tranporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -7,7 +8,7 @@ const tranporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-function sendMail(to, code) {
+export default function sendMail(to, code) {
   console.log("email to => ", to, " code =>", code);
 
   const mailOption = {
@@ -51,5 +52,3 @@ function sendMail(to, code) {
     }
   });
 }
-
-module.exports = sendMail;

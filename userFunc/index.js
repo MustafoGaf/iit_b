@@ -1,7 +1,4 @@
-const twilio = require("twilio");
-require("dotenv").config();
-
-function generateCode() {
+export function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6 цифр
 }
 
@@ -15,5 +12,3 @@ function generateCode() {
 //   })
 //   .then((message) => console.log("Message SID:", message.sid))
 //   .catch((err) => console.error("Error:", err));
-
-module.exports = { generateCode };
